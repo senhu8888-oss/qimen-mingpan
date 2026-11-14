@@ -144,5 +144,15 @@ console.log('── 7. 大运起运 ──');
   eq(ok, true, '大运始终排出 8 步');
 }
 
+{
+  // 精确折算：10.5 天 = 3 岁 + 1.5 天 → 6 个月 0 天
+  const r = B.daYun({ yearStemI: 0, monthIdx60: 0, male: true, days: 10.5 });
+  eq(r.years, 3, '10.5 天 → 3 岁');
+  eq(r.months, 6, '余 1.5 天 → 6 个月');
+  eq(r.days, 0, '无零头天数');
+  const r2 = B.daYun({ yearStemI: 0, monthIdx60: 0, male: true, days: 9 + 1 / 8 });
+  eq(r2.months, 0, '余 0.125 天 → 0 个月');
+  eq(r2.days, 15, '0.5 个月折 15 天');
+}
 console.log(`\n通过 ${pass}，失败 ${fail}`);
 process.exitCode = fail ? 1 : 0;

@@ -44,13 +44,16 @@
     var yang = o.yearStemI % 2 === 0;
     var forward = yang === !!o.male;      // 阳年男、阴年女顺排；其余逆排
     var years = Math.floor(o.days / 3);   // 三天折一年
-    var months = Math.round((o.days - years * 3) * 4); // 余下一天折四个月
+    var rem = o.days - years * 3;                      // 不足三天的余数
+    var mAll = rem * 4;                                // 一天折四个月
+    var months = Math.floor(mAll);
+    var dd = Math.floor((mAll - months) * 30);         // 不足一月的部分按每月 30 天折成天
     var list = [];
     for (var k = 1; k <= 8; k++) {
       var idx = (((o.monthIdx60 + (forward ? k : -k)) % 60) + 60) % 60;
-      list.push({ gz: gzName(idx), startAge: years + (k - 1) * 10, startMonths: months });
+      list.push({ gz: gzName(idx), startAge: years + (k - 1) * 10, startMonths: months, startDays: dd });
     }
-    return { forward: forward, years: years, months: months, list: list };
+    return { forward: forward, years: years, months: months, days: dd, list: list };
   }
 
   return { TG: TG, DZ: DZ, STEM_EL: STEM_EL, gz60: gz60, gzName: gzName, shishen: shishen, nayin: nayin, daYun: daYun };
