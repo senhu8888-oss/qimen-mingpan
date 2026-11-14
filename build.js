@@ -4,8 +4,8 @@ const path = require('path');
 const d = __dirname + path.sep;
 const tpl = fs.readFileSync(d + 'src/template.html', 'utf8');
 const css = fs.readFileSync(d + 'src/style.css', 'utf8');
-// 排盘引擎 + 梅花易数 + 四柱补充，各自是 UMD 模块，分别挂到 window.Qimen / QimenMei / QimenBazi
-const eng = ['engine.js', 'src/meihua.js', 'src/bazi-extra.js'].map((f) => fs.readFileSync(d + f, 'utf8')).join('\n;\n');
+// 排盘引擎 + 梅花易数 + 四柱补充，各自是 UMD 模块，分别挂到 window.Qimen / QimenMei / QimenBazi / QimenLunar / QimenZiwei
+const eng = ['engine.js', 'src/meihua.js', 'src/bazi-extra.js', 'src/lunar.js', 'src/ziwei.js'].map((f) => fs.readFileSync(d + f, 'utf8')).join('\n;\n');
 const app = fs.readFileSync(d + 'src/app.js', 'utf8');
 const out = tpl
   .replace('/*__CSS__*/', () => css)

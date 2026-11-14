@@ -593,7 +593,7 @@
     TG, DZ, GZ60: Array.from({ length: 60 }, (_, i) => TG[i % 10] + DZ[i % 12]),
     TERMS, JU_TABLE, YANG_TERMS, RING, PALACE_NAME, PALACE_SHORT, PALACE_DIR, PALACE_EL, STAR_HOME, DOOR_HOME, EARTH_ORDER, DEITIES,
     STAR_INFO, DOOR_INFO, DEITY_INFO, STAR_LABEL, DOOR_LABEL, DEITY_LABEL, STAR_EL, DOOR_EL, SHICHEN, WX_STEM, WX_BRANCH, SHENGXIAO,
-    lvlClass, verdictOf, toPct,
+    lvlClass, verdictOf, toPct, deltaT,
     termsOfYear, termAt, sunLonAtMs, pillars, computeJu, buildPlate, analyze, chart, narrate, daily, shichenIndexOf,
     mingGua, birthProfile, personalScore, utcFromBeijing, beijingParts, jdnCivil, gzOf, gzIndex, BRANCH_PALACE, CAL,
     _setMode(m) { MODE = m; }

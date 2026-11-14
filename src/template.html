@@ -17,6 +17,18 @@
 .hx-line.mov i { background: var(--cinnabar); }
 .hx-line.mov i.yin { background: linear-gradient(90deg, var(--cinnabar) 0 40%, transparent 40% 60%, var(--cinnabar) 60%); }
 .hxname { font: 400 22px/1.2 var(--f-display); color: var(--paper); }
+.zwgrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-rows: repeat(4, minmax(118px, auto)); gap: 4px; }
+.zwc { border: 1px solid var(--line); border-radius: 6px; background: var(--panel); padding: 5px 6px; min-width: 0; display: flex; flex-direction: column; gap: 2px; font-size: 13px; }
+.zwc.ming { border-color: var(--gold); }
+.zwc .hd { display: flex; justify-content: space-between; gap: 4px; color: var(--muted); font-size: 12px; }
+.zwc .hd b { color: var(--paper); font-weight: 500; }
+.zwc .st { color: var(--paper); line-height: 1.35; }
+.zwc .st i { font-style: normal; font-size: 11px; color: var(--gold); margin-left: 2px; }
+.zwc .st.mi { color: var(--ice); font-size: 12px; }
+.zwc .ft { margin-top: auto; color: var(--muted); font-size: 11px; display: flex; justify-content: space-between; }
+.zwmid { grid-column: 2 / 4; grid-row: 2 / 4; border: 1px dashed var(--line); border-radius: 6px; padding: 10px; display: grid; align-content: center; gap: 4px; font-size: 13px; min-width: 0; }
+.zwmid b { color: var(--gold); font-weight: 500; }
+@media (max-width: 560px) { .zwc { font-size: 12px; padding: 4px; } .zwc .hd, .zwc .ft { font-size: 10px; } .zwmid { font-size: 12px; padding: 6px; } .zwgrid { grid-template-rows: repeat(4, minmax(104px, auto)); gap: 3px; } }
 @media (max-width: 560px) { .hxrow { grid-template-columns: minmax(0, 1fr); } }
 </style>
 <canvas id="sky" aria-hidden="true"></canvas>

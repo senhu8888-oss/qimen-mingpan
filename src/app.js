@@ -274,7 +274,27 @@
       (dy ? '<h3>大运</h3><p class="muted">' + (dy.forward ? '顺排' : '逆排') + '，' + dy.years + ' 岁 ' + dy.months + ' 个月 ' + dy.days + ' 天起运（按传统口诀“三天折一年、一天折四个月”，从出生时刻到最近的节精确折算）。</p><div class="facts">' +
         dy.list.map(function (d) { return '<span class="pill">' + d.startAge + ' 岁<b>' + d.gz + '</b></span>'; }).join('') + '</div>'
         : '<p class="hint">选择男或女后，这里显示大运排列。</p>') + '</div>';
-    return '<div class="bgrid">' + form + '<div class="bout">' + info + bazi + chartSec + personal + '</div></div>';
+    var zwSec = (function () {
+      var LN = window.QimenLunar, ZW = window.QimenZiwei, bp = bj(ms);
+      var lu = LN.fromSolar(bp.y, bp.mo, bp.d);
+      var zc = ZW.chart({ lunarYear: lu.year, month: lu.month, leap: lu.leap, day: lu.day, hourIdx: P.hour.branchI, male: S.bGender !== 'F' });
+      var dayCN = lu.day <= 10 ? '初' + '一二三四五六七八九十'.charAt(lu.day - 1) : lu.day < 20 ? '十' + '一二三四五六七八九'.charAt(lu.day - 11) : lu.day === 20 ? '二十' : lu.day < 30 ? '廿' + '一二三四五六七八九'.charAt(lu.day - 21) : '三十';
+      var posMap = { 5: [1, 1], 6: [1, 2], 7: [1, 3], 8: [1, 4], 4: [2, 1], 9: [2, 4], 3: [3, 1], 10: [3, 4], 2: [4, 1], 1: [4, 2], 0: [4, 3], 11: [4, 4] };
+      var cells = zc.palaces.map(function (p) {
+        var rc = posMap[p.branchI];
+        var stars = p.stars.map(function (s) { return '<div class="st' + (s.name.length === 2 && /^(左辅|右弼|文昌|文曲)$/.test(s.name) ? ' mi' : '') + '">' + s.name + (s.hua ? '<i>化' + s.hua + '</i>' : '') + '</div>'; }).join('');
+        return '<div class="zwc' + (p.role === '命宫' ? ' ming' : '') + '" style="grid-row:' + rc[0] + ';grid-column:' + rc[1] + '">' +
+          '<div class="hd"><b>' + p.role + (p.isShen ? '·身' : '') + '</b><span>' + p.stem + p.branch + '</span></div>' + stars +
+          '<div class="ft"><span>' + p.daxian[0] + '–' + p.daxian[1] + '岁</span></div></div>';
+      }).join('');
+      var mid = '<div class="zwmid"><div>农历 <b>' + lu.year + ' 年' + (lu.leap ? '闰' : '') + lu.month + ' 月' + dayCN + '</b>（' + zc.yearGZ + '年）</div>' +
+        '<div>命宫 <b>' + zc.ming + '</b> · 身宫 <b>' + zc.shen + '</b> · <b>' + zc.juName + '</b></div>' +
+        '<div>紫微在 <b>' + zc.ziwei + '</b> · 大限' + (S.bGender ? (zc.forward ? '顺行' : '逆行') : '按男命顺逆') + '</div>' +
+        '<div>' + zc.sihua.join('　') + '</div></div>';
+      return '<div class="sec"><h2>紫微斗数</h2><p class="hint">农历由天文方法算出（已对照 1976–2030 年春节与多个闰月）。排盘用三合派常见规则：十四主星加左辅右弼、文昌文曲、四化与大限。未排星曜亮度和杂曜；庚干四化各派说法不同，这里取“太阳禄、武曲权、太阴科、天同忌”。时辰取上面八字的时柱，农历日期取当天日期，晚子时不另行处理。</p>' +
+        '<div class="zwgrid">' + cells + mid + '</div></div>';
+    })();
+    return '<div class="bgrid">' + form + '<div class="bout">' + info + bazi + zwSec + chartSec + personal + '</div></div>';
   }
 
   /* ───── 月历 ───── */
@@ -358,7 +378,7 @@
       '<li>梅花易数：数字起卦用上下两数分别除以八取余，定上卦和下卦；两数之和除以六取余，定动爻。时间起卦用公历年支、月、日代替农历，因此与传统农历起卦可能不同。</li>' +
       '<li>易经六十四卦：按文王卦序排列，卦名与上下卦的对应已逐一核对；卦义是本页简述，不是卦辞原文。</li>' +
       '<li>四柱八字：十神以日干为准；纳音按六十甲子两两一组；大运的起运年龄按“三天折一年、一天折四个月”从出生时刻到最近的节精确折算；这是传统折算口诀，不是天文事实。</li>' +
-      '<li class="warn">紫微斗数：本版本未实现。它需要精确的农历换算，离线环境下没有可靠的农历数据，不想用手写的农历表冒充精确结果。</li></ul></section>' +
+      '<li class="warn">紫微斗数：已实现命宫、身宫、五行局、十四主星、左辅右弼、文昌文曲、四化和大限；未实现星曜亮度、杂曜、流年。农历用天文方法算出，不是查表，已对照春节与闰月核对；排法按三合派常见规则，不同流派（如庚干四化、闰月、晚子时）有差异，还没有用真实命盘逐项核对。</li></ul></section>' +
       '<section><h2>验证与局限</h2><ul>' +
       '<li class="ok">节气时刻：与香港天文台 2026 年 12 个中气逐一比对，偏差不超过 0.6 分钟，超过官方一分钟精度的部分只有 0.58 分。</li>' +
       '<li class="ok">盘面结构：全年 4380 个时辰，检查九星、八门、八神各 8 个互异，值符神落在值符星所在宫等不变量，全部通过。</li>' +
