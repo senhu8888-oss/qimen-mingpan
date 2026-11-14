@@ -5,7 +5,8 @@
   var S = {
     tab: 'today', ms: Math.floor(Date.now() / 60000) * 60000, layer: 'all', palace: null,
     calY: 0, calM: 0,
-    bDate: '1990-06-01', bTime: '12:00', bLon: '', bGender: 'M', vDate: ''
+    bDate: '1990-06-01', bTime: '12:00', bLon: '', bGender: 'M', vDate: '',
+    meiMode: 'num', meiUp: 3, meiLow: 5
   };
   var WD = ['日', '一', '二', '三', '四', '五', '六'];
   var CLS = { '大吉': 'c-g2', '小吉': 'c-g1', '吉': 'c-g1', '平': 'c-m', '小凶': 'c-b1', '凶': 'c-b2', '大凶': 'c-b2' };
@@ -251,7 +252,29 @@
     var personal = '<div class="sec"><h2>个人运势 · ' + vDate + '</h2>' +
       '<p class="hint">取出生年命宫与出生日干在当时盘中的落宫表现，与盘面整体分各半计算。这是本页的个人化规则，不是经典固定公式，仅作参考。</p>' +
       bars + '</div>';
-    return '<div class="bgrid">' + form + '<div class="bout">' + info + chartSec + personal + '</div></div>';
+    var BZ = window.QimenBazi;
+    var dI = P.day.stemI;
+    var tenRow = function (lbl, p) {
+      return '<div class="row"><span class="k">' + lbl + '</span><b>' + p.gz + '</b><span>' + (p === P.day ? '日主' : BZ.shishen(dI, p.stemI)) + '</span><span class="d">纳音 ' + BZ.nayin(p.stemI, p.branchI) + '</span></div>';
+    };
+    var forwardDir = (P.year.stemI % 2 === 0) === (S.bGender === 'M');
+    var jieDays = (function () {
+      var t = Q.termAt(ms), best = null;
+      t.list.forEach(function (x) {
+        if (!x.jie) return;
+        if (forwardDir && x.ms > ms && (best === null || x.ms < best)) best = x.ms;
+        if (!forwardDir && x.ms <= ms && (best === null || x.ms > best)) best = x.ms;
+      });
+      return best === null ? 0 : Math.abs(best - ms) / DAY;
+    })();
+    var dy = S.bGender ? BZ.daYun({ yearStemI: P.year.stemI, monthIdx60: P.month.idx, male: S.bGender === 'M', days: jieDays }) : null;
+    var bazi = '<div class="sec"><h2>八字细看</h2><div class="trio">' +
+      tenRow('年干', P.year) + tenRow('月干', P.month) + tenRow('日干', P.day) + tenRow('时干', P.hour) + '</div>' +
+      '<p class="hint">十神以日干为准。纳音是六十甲子两两一组的五行意象，只作参考。</p>' +
+      (dy ? '<h3>大运</h3><p class="muted">' + (dy.forward ? '顺排' : '逆排') + '，约 ' + dy.years + ' 岁 ' + dy.months + ' 个月起运（按距最近节的天数折算，是近似值）。</p><div class="facts">' +
+        dy.list.map(function (d) { return '<span class="pill">' + d.startAge + ' 岁<b>' + d.gz + '</b></span>'; }).join('') + '</div>'
+        : '<p class="hint">选择男或女后，这里显示大运排列。</p>') + '</div>';
+    return '<div class="bgrid">' + form + '<div class="bout">' + info + bazi + chartSec + personal + '</div></div>';
   }
 
   /* ───── 月历 ───── */
@@ -276,6 +299,48 @@
       '<p class="hint">每格是当天十二时辰的平均分。点任一天，跳到当天的盘。今日加粗标记。</p></div>';
   }
 
+  /* ───── 梅花易数与易经 ───── */
+  function viewMei() {
+    var M = window.QimenMei;
+    var mode = S.meiMode === 'time' ? 'time' : 'num';
+    var up = Math.max(0, Math.floor(+S.meiUp) || 0), low = Math.max(0, Math.floor(+S.meiLow) || 0);
+    var r;
+    if (mode === 'time') {
+      var b = bj(S.ms);
+      r = M.fromTime(b.y, b.mo, b.d, Q.shichenIndexOf(S.ms));
+    } else {
+      r = M.fromNumbers(up, low);
+    }
+    var hexCard = function (title, h, movePos) {
+      var out = '';
+      for (var i = 5; i >= 0; i--) {
+        out += '<div class="hx-line' + (movePos === i + 1 ? ' mov' : '') + '"><i class="' + (h.lines[i] ? 'yang' : 'yin') + '"></i></div>';
+      }
+      return '<div class="hxcard"><h3>' + title + '</h3><div class="hx">' + out + '</div>' +
+        '<div class="hxname">' + h.name + ' <span class="muted">（' + h.upper.name + '上' + h.lower.name + '下）</span></div>' +
+        '<p class="hint">' + h.mean + '</p></div>';
+    };
+    var form = '<form class="formcard" onsubmit="return false">' +
+      '<div class="field"><span class="lb">起卦方式</span><div class="row">' +
+      '<label><input type="radio" name="mm" value="num" data-bind="meiMode"' + (mode === 'num' ? ' checked' : '') + '>数字起卦</label>' +
+      '<label><input type="radio" name="mm" value="time" data-bind="meiMode"' + (mode === 'time' ? ' checked' : '') + '>用时间起卦</label></div></div>' +
+      (mode === 'num'
+        ? '<div class="field"><label for="mu">上数（决定上卦）</label><input id="mu" type="number" min="0" data-bind="meiUp" value="' + up + '"></div>' +
+          '<div class="field"><label for="ml">下数（决定下卦；上下两数之和决定动爻）</label><input id="ml" type="number" min="0" data-bind="meiLow" value="' + low + '"></div>'
+        : '<p class="hint">使用「今日吉凶」里选定的时刻：' + dayOf(S.ms) + ' ' + hmOf(S.ms) + '。时间起卦用公历年支和公历月日代替农历，结果与传统农历起卦可能不同。</p>') +
+      '</form>';
+    var cards = '<div class="hxrow">' + hexCard('本卦', r.ben, r.mv) + hexCard('变卦', r.bian, r.mv) + hexCard('互卦', r.hu, 0) + '</div>';
+    var rel = r.rel;
+    var tiyong = '<div class="trio">' +
+      '<div class="row"><span class="k">动爻</span><b>' + r.yao + '</b><span>第 ' + r.mv + ' 爻（自下而上）</span></div>' +
+      '<div class="row"><span class="k">用卦</span><b>' + r.yong.name + '</b><span>' + r.yong.el + '行</span><span class="d">动爻在' + (r.mv <= 3 ? '下' : '上') + '卦，所以' + r.yong.name + '为用。</span></div>' +
+      '<div class="row"><span class="k">体卦</span><b>' + r.ti.name + '</b><span>' + r.ti.el + '行</span><span class="d">另一卦为体，代表问事的人自己。</span></div>' +
+      '</div>';
+    var verdict = '<div class="sec v-' + (rel.level === 'good' ? 'good' : 'bad') + '"><span class="vw">' + rel.kind + '</span><p class="advice">' + rel.text + '</p></div>';
+    var note = '<p class="hint">梅花易数是北宋邵雍传下的起卦法。卦象和体用关系按古法算出；体用生克的判语是常见说法，不构成预测。卦义是本页的简述，不是卦辞原文。</p>';
+    return '<div class="bgrid">' + form + '<div class="bout">' + cards + tiyong + verdict + note + '</div></div>';
+  }
+
   /* ───── 说明 ───── */
   function viewRules() {
     return '<div class="rules">' +
@@ -289,6 +354,11 @@
       '<li>整盘：值符宫 35%、值使宫 25%、时干宫 20%、日干宫 20%，伏吟、反吟、五不遇时另作扣分。</li>' +
       '<li>领域：财运看生门，事业看开门与值符，人缘看六合与太阴，学业看景门与天辅，健康看天心与休门，出行看开门与驿马。</li>' +
       '<li>分数以当日同类时辰的中位数为 50 分校准，所以颜色表示相对平常的好坏。</li></ul></section>' +
+      '<section><h2>其他理论</h2><ul>' +
+      '<li>梅花易数：数字起卦用上下两数分别除以八取余，定上卦和下卦；两数之和除以六取余，定动爻。时间起卦用公历年支、月、日代替农历，因此与传统农历起卦可能不同。</li>' +
+      '<li>易经六十四卦：按文王卦序排列，卦名与上下卦的对应已逐一核对；卦义是本页简述，不是卦辞原文。</li>' +
+      '<li>四柱八字：十神以日干为准；纳音按六十甲子两两一组；大运的起运年龄按距最近节的天数每三天折一年，是近似值。</li>' +
+      '<li class="warn">紫微斗数：本版本未实现。它需要精确的农历换算，离线环境下没有可靠的农历数据，不想用手写的农历表冒充精确结果。</li></ul></section>' +
       '<section><h2>验证与局限</h2><ul>' +
       '<li class="ok">节气时刻：与香港天文台 2026 年 12 个中气逐一比对，偏差不超过 0.6 分钟，超过官方一分钟精度的部分只有 0.58 分。</li>' +
       '<li class="ok">盘面结构：全年 4380 个时辰，检查九星、八门、八神各 8 个互异，值符神落在值符星所在宫等不变量，全部通过。</li>' +
@@ -305,7 +375,7 @@
     });
     var html;
     try {
-      html = S.tab === 'today' ? viewToday() : S.tab === 'birth' ? viewBirth() : S.tab === 'calendar' ? viewCal() : viewRules();
+      html = S.tab === 'today' ? viewToday() : S.tab === 'birth' ? viewBirth() : S.tab === 'calendar' ? viewCal() : S.tab === 'mei' ? viewMei() : viewRules();
     } catch (err) {
       console.error(err);
       html = '<p class="flag">排盘出错：' + esc(err.message) + '</p>';

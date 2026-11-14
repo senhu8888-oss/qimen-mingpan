@@ -5,7 +5,7 @@
   "main": "engine.js",
   "scripts": {
     "build": "node build.js",
-    "test": "node test_terms.js && node test_chart.js"
+    "test": "node test_terms.js && node test_chart.js && node test_extra.js"
   },
   "keywords": ["qimen", "qimen-dunjia", "chinese-metaphysics", "solar-terms", "vsop87"],
   "license": "MIT"
