@@ -1,0 +1,12 @@
+{
+  "name": "qimen-mingpan",
+  "version": "1.0.0",
+  "description": "奇门遁甲时家转盘（拆补法）排盘与可视化：每日十二时辰吉凶、生辰命盘。纯前端单文件页面。",
+  "main": "engine.js",
+  "scripts": {
+    "build": "node build.js",
+    "test": "node test_terms.js && node test_chart.js"
+  },
+  "keywords": ["qimen", "qimen-dunjia", "chinese-metaphysics", "solar-terms", "vsop87"],
+  "license": "MIT"
+}

@@ -1,0 +1,37 @@
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>奇门命盘</title>
+<style>
+/*__CSS__*/
+.flag.edge { background: rgba(226, 187, 104, 0.08); border-color: var(--line-strong); }
+.flag.edge b { color: var(--gold); }
+.note.good { color: var(--paper); }
+.note.bad { color: var(--bad-text); }
+.tag { white-space: nowrap; }
+.tabs button { min-height: 40px; }
+</style>
+<canvas id="sky" aria-hidden="true"></canvas>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>奇门命盘</h1>
+      <p class="sub">时家转盘·拆补法 · 北京时间起盘 · 每个数字都由本页实时计算</p>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="页面">
+      <button type="button" role="tab" data-tab="today" aria-selected="true">今日吉凶</button>
+      <button type="button" role="tab" data-tab="birth" aria-selected="false">生辰命盘</button>
+      <button type="button" role="tab" data-tab="calendar" aria-selected="false">月历</button>
+      <button type="button" role="tab" data-tab="rules" aria-selected="false">方法与局限</button>
+    </nav>
+  </header>
+  <main id="app" class="view"></main>
+  <footer>
+    <span>奇门遁甲属于传统术数，未经科学验证。本页输出仅供文化研究与参考，不构成决策依据。</span>
+    <span>排盘引擎：Python 无关，纯 JavaScript 实现；节气以 VSOP87 计算，精度约 0.6 分钟。</span>
+  </footer>
+</div>
+<script>
+/*__ENGINE__*/
+</script>
+<script>
+/*__APP__*/
+</script>
