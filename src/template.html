@@ -8,6 +8,15 @@
 .note.bad { color: var(--bad-text); }
 .tag { white-space: nowrap; }
 .tabs button { min-height: 40px; }
+.mbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 14px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: rgba(12, 19, 38, 0.5); }
+.btn[aria-pressed="true"] { background: rgba(226, 187, 104, 0.2); border-color: var(--gold); color: var(--gold); }
+.mbar .lb { color: var(--muted); font-size: 13px; }
+.mbar .layerbar { margin: 0; }
+.mbar .mp { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+.mbar .mp input { width: 72px; }
+.mbar .hint { flex: 1 1 220px; min-width: 0; }
+.pill.hot { border-color: var(--gold); }
+.pill > span { font-size: 12px; }
 .hxrow { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .hxcard { border: 1px solid var(--line); border-radius: 10px; background: var(--panel); padding: 12px; display: grid; gap: 8px; justify-items: center; text-align: center; min-width: 0; }
 .hxcard h3 { margin: 0; }
@@ -36,7 +45,7 @@
   <header class="top">
     <div>
       <h1>奇门命盘</h1>
-      <p class="sub">时家转盘·拆补法 · 北京时间起盘 · 每个数字都由本页实时计算</p>
+      <p class="sub">时家转盘·<span id="subm">拆补法</span> · 北京时间起盘 · 每个数字都由本页实时计算</p>
     </div>
     <nav class="tabs" role="tablist" aria-label="页面">
       <button type="button" role="tab" data-tab="today" aria-selected="true">今日吉凶</button>

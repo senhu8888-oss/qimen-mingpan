@@ -6,7 +6,8 @@
     tab: 'today', ms: Math.floor(Date.now() / 60000) * 60000, layer: 'all', palace: null,
     calY: 0, calM: 0,
     bDate: '1990-06-01', bTime: '12:00', bLon: '', bGender: 'M', vDate: '',
-    meiMode: 'num', meiUp: 3, meiLow: 5
+    meiMode: 'num', meiUp: 3, meiLow: 5,
+    method: 'chaibu', chaoLimit: 9, yuanShichen: 60
   };
   var WD = ['日', '一', '二', '三', '四', '五', '六'];
   var CLS = { '大吉': 'c-g2', '小吉': 'c-g1', '吉': 'c-g1', '平': 'c-m', '小凶': 'c-b1', '凶': 'c-b2', '大凶': 'c-b2' };
@@ -60,6 +61,43 @@
   function dayAvg(y, mo, d) {
     var s = daySlots(y, mo, d);
     return Math.round(s.reduce(function (a, x) { return a + x.pct; }, 0) / 12);
+  }
+
+
+  /* ───── 定局方法 ───── */
+  var METHOD_DESC = {
+    chaibu: '节气按交节时刻切换，元按当天符头定。默认方法。',
+    zhirun: '按符头成块，超神超过上限在芒种或大雪后置闰，重复使用该节气三元。',
+    maoshan: '不看符头，从交节时刻起每 N 个时辰转一元，下元用到下一节气交节为止。'
+  };
+  function clampInt(v, lo, hi, dflt) { v = Math.round(Number(v)); return isFinite(v) ? Math.min(hi, Math.max(lo, v)) : dflt; }
+  function applyMethod() {
+    S.chaoLimit = clampInt(S.chaoLimit, 5, 14, 9);
+    S.yuanShichen = clampInt(S.yuanShichen, 12, 120, 60);
+    Q.setMethod(S.method, { chaoLimit: S.chaoLimit, yuanShichen: S.yuanShichen });
+  }
+  function methodBar() {
+    var btns = ['chaibu', 'zhirun', 'maoshan'].map(function (m) {
+      return '<button type="button" class="btn" data-method="' + m + '" aria-pressed="' + (S.method === m) + '">' + Q.METHODS[m] + '</button>';
+    }).join('');
+    var par = S.method === 'zhirun'
+      ? '<label class="mp">超神上限（天）<input type="number" min="5" max="14" step="1" data-mparam="chaoLimit" value="' + S.chaoLimit + '"></label>'
+      : S.method === 'maoshan'
+        ? '<label class="mp">每元时辰数<input type="number" min="12" max="120" step="1" data-mparam="yuanShichen" value="' + S.yuanShichen + '"></label>' : '';
+    return '<div class="mbar"><span class="lb">定局方法</span><div class="layerbar">' + btns + '</div>' + par +
+      '<span class="hint">' + METHOD_DESC[S.method] + '</span></div>';
+  }
+  // 当前盘的定局信息：方法、超神/接气、闰期
+  function methodPills(J) {
+    var t = '';
+    if (J.method === 'chaibu') t = '参考：交节日' + (J.chao.kind === '正授' ? '与上元符头同日（正授）' : '距上元符头 ' + J.chao.days + ' 天（' + J.chao.kind + '）') + '，不影响定局';
+    else if (J.method === 'zhirun') t = J.chao.kind === '正授' ? '正授（符头与节气同日）' : J.chao.kind + ' ' + J.chao.days + ' 天';
+    else t = '交节后第 ' + (J.usedShichen + 1) + ' 时辰（每元 ' + J.params.yuanShichen + ' 个）';
+    var out = '<span class="pill">' + J.methodName + '<b>' + esc(t) + '</b></span>';
+    if (J.method === 'zhirun') out += '<span class="pill' + (J.run ? ' hot' : '') + '">闰期<b>' + (J.run ? '是，重复' + J.termName + '三元' : '否') + '</b></span>';
+    if (J.actualTerm !== J.termName) out += '<span class="pill">实际节气<b>' + J.actualTerm + '</b><span>已用' + J.termName + '局</span></span>';
+    if (J.fallback) out += '<span class="pill hot">超出置闰法表范围<b>已退回拆补法</b></span>';
+    return out;
   }
 
   /* ───── 盘面 SVG ───── */
@@ -150,7 +188,7 @@
       '<p class="advice">' + v.advice + '</p>' +
       '<p class="narrate">' + esc(Q.narrate(c)) + '</p>' +
       '<div class="facts"><span class="pill">' + J.termName + '<b>' + (J.yang ? '阳' : '阴') + '遁' + J.ju + '局</b></span>' +
-      '<span class="pill">' + J.yuanName + '<b>符头 ' + J.futou.gz + '</b></span></div>' +
+      '<span class="pill">' + J.yuanName + '<b>符头 ' + J.futou.gz + '</b></span>' + methodPills(J) + '</div>' +
       edge + flags +
       '<div><h3>吉凶领域</h3><div>' + doms + '</div></div>' +
       '<div><h3>关键落位</h3>' + trio + '</div>' +
@@ -232,6 +270,7 @@
       '<p>生肖 <b>' + prof.shengxiao + '</b> · 日主 <b>' + prof.dayMaster.stem + prof.dayMaster.el + '</b>（' + (prof.dayMaster.yin ? '阴' : '阳') + '）· 奇门年命宫 <b>' + PN(prof.mingPalace) + '</b></p>' +
       gua + wxHTML + '</div>';
     var chartSec = '<div class="sec"><h2>生辰命盘</h2><p class="hint">按出生时刻起盘（' + S.bDate + ' ' + S.bTime + '，' + (lonNum === null ? '北京时间' : '真太阳时') + '）。点任一宫查看细节。</p>' +
+      '<div class="facts">' + methodPills(bc.ju) + '</div>' +
       '<div class="layerbar">' + LAYER.map(function (l) {
         return '<button type="button" class="btn" data-layer="' + l[0] + '" aria-pressed="' + (S.layer === l[0]) + '">' + l[1] + '</button>';
       }).join('') + '</div>' +
@@ -366,9 +405,14 @@
     return '<div class="rules">' +
       '<section><h2>排盘方法</h2><div class="twocol">' +
       '<div><h3>时间与换日</h3><ul><li>按北京时间起盘，可选填出生地经度换算真太阳时。</li><li>23:00 换日，晚子时计入次日。</li><li>立春交节换年，节（不含气）交节换月。</li></ul></div>' +
-      '<div><h3>定局（拆补法）</h3><ul><li>节气取精确的交节时刻，一个节气内不混用别的节气局象。</li><li>元由当日符头地支定：子午卯酉为上元，寅申巳亥为中元，辰戌丑未为下元。</li><li>阳遁自冬至起，阴遁自夏至起；局数查 24 节气三元表。</li></ul></div>' +
+      '<div><h3>定局（三选一，默认拆补法）</h3><ul><li>符头：甲子、己卯、甲午、己酉日为上元符头，每隔 5 天一个符头；符头地支子午卯酉为上元，寅申巳亥为中元，辰戌丑未为下元。</li><li><b>拆补法</b>：节气取精确交节时刻，元由当天所属符头定。</li><li><b>置闰法</b>：局按符头成块，每 5 天一块，三块为一个节气。符头早于节气叫超神，晚于叫接气。超神超过上限（默认 9 天）后，在芒种（阳遁）或大雪（阴遁）之后重复使用该节气三元（闰期，15 天），芒种用 6/3/9，大雪用 4/7/1。</li><li><b>茅山法</b>：不置闰不拆补，也不看符头。从交节时刻起用该节气上元，每 60 个时辰（5 天）转一元；下元用满而下一节气未到，继续用下元，下元未用满而新节气已到，则舍弃剩余部分。</li><li>三种方法共用同一张节气局数表，只是“哪一刻用哪个节气的哪一元”不同。2000–2030 年三者不全相同的日子约占七成，见仓库里的对比表。</li></ul></div>' +
       '<div><h3>布盘</h3><ul><li>地盘：戊起局数宫，阳遁顺布、阴遁逆布。</li><li>天盘：九星随值符星整体转动，每宫带地盘干。</li><li>值使门：从旬首宫起，按时辰数走九宫。其余七门随之转动。</li><li>八神：值符神随值符星，阳遁顺、阴遁逆。</li></ul></div>' +
       '</div></section>' +
+      '<section><h2>三种定局方法待确认的细节</h2><ul>' +
+      '<li class="warn">茅山法：我查到的两份公开资料都说它“不置闰、不拆补、从交节起用上元”，并没有“以接气为主”这一说法，所以按资料实现。若你指的是另一种“以接气为主”的茅山法，请告诉我规则。</li>' +
+      '<li class="warn">茅山法：“60 个时辰”按交节时刻起算的 120 小时，不按整时辰对齐；交节落在时辰中间如何计，资料没有说明。</li>' +
+      '<li class="warn">置闰法：超神上限默认 9 天，超过才置闰（即超神最多 9 天、接气最多 5 天）；资料没有给出天数门槛，这个数是按你的说明设的，可以在页面里改。真实节气间隔不均匀，所以实际超神、接气天数会略超出这个理想范围。</li>' +
+      '<li class="warn">置闰法：闰期长度取 15 天（重复整个三元）；闰期只能出现在芒种或大雪之后；起点用 1880 年冬至往后推，之后的置闰位置由规则本身决定。置闰法没有统一的历史起点，不同软件可能差一轮。</li></ul></section>' +
       '<section><h2>吉凶怎么算</h2><ul>' +
       '<li>每宫：门、星、神各有基础分，再加上天遁、地遁、人遁等格局，以及门迫、击刑、空亡的扣分。</li>' +
       '<li>整盘：值符宫 35%、值使宫 25%、时干宫 20%、日干宫 20%，伏吟、反吟、五不遇时另作扣分。</li>' +
@@ -393,6 +437,7 @@
     document.querySelectorAll('[data-tab]').forEach(function (b) {
       b.setAttribute('aria-selected', String(b.getAttribute('data-tab') === S.tab));
     });
+    var sm = document.getElementById('subm'); if (sm) sm.textContent = Q.METHODS[S.method];
     var html;
     try {
       html = S.tab === 'today' ? viewToday() : S.tab === 'birth' ? viewBirth() : S.tab === 'calendar' ? viewCal() : S.tab === 'mei' ? viewMei() : viewRules();
@@ -400,7 +445,7 @@
       console.error(err);
       html = '<p class="flag">排盘出错：' + esc(err.message) + '</p>';
     }
-    app.innerHTML = html;
+    app.innerHTML = (S.tab === 'today' || S.tab === 'birth' || S.tab === 'calendar' ? methodBar() : '') + html;
   }
   function go(tab) { S.tab = tab; if (tab !== 'today') S.palace = null; render(); }
 
@@ -408,6 +453,7 @@
     var el;
     if ((el = e.target.closest('[data-tab]'))) { go(el.getAttribute('data-tab')); return; }
     if ((el = e.target.closest('[data-ms]'))) { S.ms = +el.getAttribute('data-ms'); render(); return; }
+    if ((el = e.target.closest('[data-method]'))) { S.method = el.getAttribute('data-method'); applyMethod(); render(); return; }
     if ((el = e.target.closest('[data-layer]'))) { S.layer = el.getAttribute('data-layer'); render(); return; }
     if ((el = e.target.closest('[data-p]'))) { var p = +el.getAttribute('data-p'); S.palace = S.palace === p ? null : p; render(); return; }
     if ((el = e.target.closest('[data-nav]'))) {
@@ -434,6 +480,7 @@
       if (okDate(d) && okTime(tt)) { S.ms = toMs(d, tt); render(); }
       return;
     }
+    if (t.hasAttribute('data-mparam')) { S[t.getAttribute('data-mparam')] = t.value; applyMethod(); render(); return; }
     if (t.hasAttribute('data-bind')) {
       S[t.getAttribute('data-bind')] = t.value;
       render();
@@ -467,5 +514,6 @@
   }
   window.addEventListener('resize', drawSky);
   drawSky();
+  applyMethod();
   render();
 })();

@@ -253,17 +253,118 @@
   const YANG_TERMS = new Set(['冬至', '小寒', '大寒', '立春', '雨水', '惊蛰', '春分', '清明', '谷雨', '立夏', '小满', '芒种']);
   const YUAN_NAME = ['上元', '中元', '下元'];
 
-  function computeJu(utMs, dayIdx) {
+  /* ───────────── 定局方法：拆补法 / 置闰法 / 茅山法 ─────────────
+   * 三种方法都用同一张“节气 × 三元”局数表，区别只在于“哪一刻用哪个节气的哪一元”：
+   *  拆补法：节气按交节时刻切换，元按当天所属符头（本项目原有做法）。
+   *  置闰法：按符头成块（每 5 天一块，三块为一个节气），节气的上元从上元符头起；
+   *          符头早于节气叫超神，晚于叫接气；超神超过 chaoLimit 天时，在芒种或大雪后重复使用该节气三元（闰）。
+   *  茅山法：不看符头；从交节时刻起算，每 yuanShichen 个时辰转一元（上→中→下），下元用到下一节气交节为止。
+   * 阈值都在 METHOD_PARAMS 里，可通过 setMethod 或 opts.params 修改。
+   */
+  const METHODS = { chaibu: '拆补法', zhirun: '置闰法', maoshan: '茅山法' };
+  const METHOD_PARAMS = {
+    zhirun: { chaoLimit: 9, epochYear: 1880 },  // 超神最多 chaoLimit 天；超过则在芒种/大雪置闰
+    maoshan: { yuanShichen: 60 }                 // 每一元用多少个时辰（1 时辰 = 2 小时）
+  };
+  let DEFAULT_METHOD = 'chaibu';
+  let DEFAULT_PARAMS = {};
+  function setMethod(name, params) {
+    if (!METHODS[name]) throw new Error('未知定局方法：' + name);
+    DEFAULT_METHOD = name; DEFAULT_PARAMS = params || {};
+  }
+  function getMethod() { return { method: DEFAULT_METHOD, params: DEFAULT_PARAMS }; }
+
+  // 以“日柱换日规则”得到的绝对日序号（儒略日数；23:00 起算次日），干支序 = (abs − 2451545 + 54) mod 60
+  function absDayOf(utMs, lon) {
+    const cd = new Date(clockMs(utMs, lon));
+    let jd = jdnCivil(cd.getUTCFullYear(), cd.getUTCMonth() + 1, cd.getUTCDate());
+    if (cd.getUTCHours() >= 23) jd += 1;
+    return jd;
+  }
+  const gzOfAbs = (a) => (((a - 2451545 + 54) % 60) + 60) % 60;
+  const isShangYuanFutou = (a) => gzOfAbs(a) % 15 === 0;   // 甲子、己卯、甲午、己酉
+
+  function chaoKind(d) { return d === 0 ? '正授' : d > 0 ? '超神' : '接气'; }
+
+  // 置闰法的“块表”：从 epochYear 起，每 5 天一块，记录该块使用的节气、元、是否闰期
+  const zhirunCache = new Map();
+  function zhirunBlocks(chaoLimit, epochYear) {
+    const key = chaoLimit + ':' + epochYear;
+    if (zhirunCache.has(key)) return zhirunCache.get(key);
+    let list = [];
+    for (let y = epochYear; y <= 2102; y++) list = list.concat(termsOfYear(y));
+    list.sort((a, b) => a.ms - b.ms);
+    let i0 = list.findIndex((t) => t.name === '冬至');
+    const blocks = [];
+    let F = null;
+    for (let i = i0; i < list.length; i++) {
+      const t = list[i];
+      const td = absDayOf(t.ms, null);
+      if (F === null) {                       // 起点：取使超神天数落在 [chaoLimit−14, chaoLimit] 的上元符头
+        F = td - chaoLimit;
+        while (!isShangYuanFutou(F)) F++;
+        while (td - F > chaoLimit) F += 15;
+        while (td - F < chaoLimit - 14) F -= 15;
+      }
+      const chao = td - F;
+      for (let rep = 0; ; rep++) {
+        for (let k = 0; k < 3; k++) blocks.push({ start: F + 5 * k, term: t.name, termMs: t.ms, yuan: k, run: rep > 0, chao, F0: F });
+        F += 15;
+        // 只有芒种、大雪之后才能置闰：若下一节气的超神天数仍超过上限，就把本节气三元重复一遍
+        const nxt = list[i + 1];
+        if ((t.name === '芒种' || t.name === '大雪') && nxt && absDayOf(nxt.ms, null) - F > chaoLimit) continue;
+        break;
+      }
+    }
+    zhirunCache.set(key, blocks);
+    return blocks;
+  }
+  function findBlock(blocks, abs) {
+    let lo = 0, hi = blocks.length - 1;
+    if (!blocks.length || abs < blocks[0].start || abs >= blocks[hi].start + 5) return null;
+    while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (blocks[mid].start <= abs) lo = mid; else hi = mid - 1; }
+    return blocks[lo];
+  }
+
+  function computeJu(utMs, dayIdx, opts) {
+    opts = opts || {};
+    const method = opts.method || DEFAULT_METHOD;
+    const params = Object.assign({}, METHOD_PARAMS.zhirun, METHOD_PARAMS.maoshan, DEFAULT_PARAMS, opts.params || {});
     const ta = termAt(utMs);
-    const termName = ta.cur.name;
     const futouIdx = (((dayIdx - ((dayIdx % 10) % 5)) % 60) + 60) % 60; // 最近的甲/己日
     const fb = futouIdx % 12;
-    const yuan = [0, 6, 3, 9].includes(fb) ? 0 : [2, 8, 5, 11].includes(fb) ? 1 : 2;
-    return {
-      termName, term: ta.cur, nextTerm: ta.next, prevTerm: ta.prev,
-      yang: YANG_TERMS.has(termName), ju: JU_TABLE[termName][yuan],
-      yuan, yuanName: YUAN_NAME[yuan], futou: gzOf(futouIdx), daysSinceFutou: (dayIdx % 10) % 5, ta
+    const yuanByFutou = [0, 6, 3, 9].includes(fb) ? 0 : [2, 8, 5, 11].includes(fb) ? 1 : 2;
+    const base = {
+      term: ta.cur, nextTerm: ta.next, prevTerm: ta.prev, actualTerm: ta.cur.name,
+      futou: gzOf(futouIdx), daysSinceFutou: (dayIdx % 10) % 5, ta,
+      method, methodName: METHODS[method], params, run: false
     };
+    const done = (termName, yuan, extra) => Object.assign(base, {
+      termName, yang: YANG_TERMS.has(termName), ju: JU_TABLE[termName][yuan], yuan, yuanName: YUAN_NAME[yuan]
+    }, extra);
+
+    if (method === 'zhirun') {
+      const abs = absDayOf(utMs, opts.lon === undefined ? null : opts.lon);
+      const blk = findBlock(zhirunBlocks(params.chaoLimit, params.epochYear), abs);
+      if (blk) {
+        return done(blk.term, blk.yuan, {
+          run: blk.run, chao: { kind: chaoKind(blk.chao), days: Math.abs(blk.chao), signed: blk.chao },
+          futouTerm: blk.term
+        });
+      }
+      // 超出块表范围（1880 年前或 2102 年后）退回拆补法，并在结果里注明
+      base.fallback = true;
+    }
+    if (method === 'maoshan') {
+      const hours = (utMs - ta.cur.ms) / 3600000;
+      const yuan = Math.min(2, Math.floor(hours / (params.yuanShichen * 2)));
+      return done(ta.cur.name, yuan, { chao: { kind: '不适用', days: 0, signed: 0 }, elapsedHours: hours, usedShichen: Math.floor(hours / 2) });
+    }
+    // 拆补法（也是退回时的做法）。超神/接气：本节气交节日与最近上元符头相差的天数，仅供对照，不影响定局
+    const td = absDayOf(ta.cur.ms, null);
+    let d = ((((td - 2451545 + 54) % 15) + 15) % 15);  // 交节日距上一个上元符头的天数 0..14
+    if (d > 7) d -= 15;                                // 取最近：-7..7
+    return done(ta.cur.name, yuanByFutou, { chao: { kind: chaoKind(d), days: Math.abs(d), signed: d } });
   }
 
   /* ───────────── 起盘（时家转盘） ───────────── */
@@ -499,7 +600,7 @@
     opts = opts || {};
     const lon = normLon(opts.lon);
     const P = pillars(utMs, lon);
-    const J = computeJu(utMs, P.day.idx);
+    const J = computeJu(utMs, P.day.idx, { method: opts.method, params: opts.params, lon });
     const plate = buildPlate({ yang: J.yang, ju: J.ju, hourIdx: P.hour.idx });
     const an = analyze(plate, P);
     // 与最近节气交接的距离（分钟），用于提示边界风险
@@ -594,7 +695,7 @@
     TERMS, JU_TABLE, YANG_TERMS, RING, PALACE_NAME, PALACE_SHORT, PALACE_DIR, PALACE_EL, STAR_HOME, DOOR_HOME, EARTH_ORDER, DEITIES,
     STAR_INFO, DOOR_INFO, DEITY_INFO, STAR_LABEL, DOOR_LABEL, DEITY_LABEL, STAR_EL, DOOR_EL, SHICHEN, WX_STEM, WX_BRANCH, SHENGXIAO,
     lvlClass, verdictOf, toPct, deltaT,
-    termsOfYear, termAt, sunLonAtMs, pillars, computeJu, buildPlate, analyze, chart, narrate, daily, shichenIndexOf,
+    termsOfYear, termAt, sunLonAtMs, pillars, computeJu, METHODS, METHOD_PARAMS, setMethod, getMethod, zhirunBlocks, absDayOf, buildPlate, analyze, chart, narrate, daily, shichenIndexOf,
     mingGua, birthProfile, personalScore, utcFromBeijing, beijingParts, jdnCivil, gzOf, gzIndex, BRANCH_PALACE, CAL,
     _setMode(m) { MODE = m; }
   };
