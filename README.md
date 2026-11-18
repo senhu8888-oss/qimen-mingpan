@@ -4,7 +4,7 @@
 >
 > *A Qimen Dunjia chart generator in one offline HTML file: pick a time, get the chart and a score for each of the 12 double-hours.*
 
-**👉 [在线体验](https://senhu8888-oss.github.io/qimen-mingpan/)**　|　[下载单文件 dist/index.html](dist/index.html)　|　[欢迎核对结果](VERIFY.md)
+**👉 [在线体验](https://senhu8888-oss.github.io/qimen-mingpan/)**　|　[下载单文件 dist/index.html](dist/index.html)　|　[欢迎核对结果](VERIFY.md)　|　[English](README.en.md)
 
 ![今日吉凶](docs/img/today.jpg)
 ![梅花易数](docs/img/meihua.jpg)
