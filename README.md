@@ -1,13 +1,28 @@
 # 奇门命盘
 
-奇门遁甲时家转盘（拆补法）的排盘与可视化页面。输入任意北京时间，算出当时的盘，给出综合分与十二时辰吉凶；输入出生信息，给出生辰命盘、八字（含十神、纳音、大运）、命卦和个人运势。另有梅花易数起卦、六十四卦查看，以及按出生时间排出的紫微斗数命盘。
+> 输入任意时间，一键排出奇门遁甲盘，看今天十二个时辰的吉凶。单个 HTML 文件，无需安装，离线可用。
+>
+> *A Qimen Dunjia chart generator in one offline HTML file: pick a time, get the chart and a score for each of the 12 double-hours.*
 
-整个页面是一个 HTML 文件，没有外部依赖，离线可用。
+**👉 [在线体验](https://senhu8888-oss.github.io/qimen-mingpan/)**　|　[下载单文件 dist/index.html](dist/index.html)　|　[欢迎核对结果](VERIFY.md)
 
 ![今日吉凶](docs/img/today.jpg)
 ![梅花易数](docs/img/meihua.jpg)
 
-**在线使用**：仓库已附 `docs/index.html`，在 GitHub 仓库的 Settings → Pages 里选 Branch `main`、目录 `/docs`，就能得到一个网页地址。
+## 它能做什么
+
+- **奇门遁甲排盘**：输入任意北京时间，排出时家转盘，给出综合分和十二时辰吉凶；支持拆补法、置闰法、茅山法三种定局方法切换。
+- **生辰命盘**：输入出生信息，得到八字（十神、纳音、大运）、命卦和个人运势。
+- **紫微斗数**：按出生时间排出命盘（基础部分）。
+- **梅花易数**：数字起卦、时间起卦，附六十四卦查看。
+- **节气精确到分钟**：用 VSOP87 计算，与香港天文台 2026 年中气比对偏差在 1 分钟内。
+- **无依赖、可离线**：整个页面只有一个 HTML 文件，双击就能用；代码开源（MIT）。
+
+觉得有用的话，点一下右上角的 ⭐ Star 就是最大的支持；发现排盘和你信得过的结果不一致，欢迎提 issue。
+
+## 在线使用
+
+仓库已附 `docs/index.html`。想自己部署一个网页：在 GitHub 仓库的 Settings → Pages 里选 Branch `main`、目录 `/docs`，保存后就能得到网页地址。
 
 ## 怎么用
 
